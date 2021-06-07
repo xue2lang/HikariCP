@@ -15,6 +15,10 @@
  */
 package com.zaxxer.hikari.util;
 
+import com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,15 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry;
-
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_IN_USE;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_NOT_IN_USE;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_REMOVED;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_RESERVED;
+import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.*;
 
 /**
  * This is a specialized concurrent bag that achieves superior performance
@@ -52,17 +48,33 @@ import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_RES
  * @author Brett Wooldridge
  *
  * @param <T> the templated type to store in the bag
+ *
+ *           是HikariCP为连接池设计的一个并发类
  */
 public class ConcurrentBag<T extends IConcurrentBagEntry> implements AutoCloseable
 {
    private static final Logger LOGGER = LoggerFactory.getLogger(ConcurrentBag.class);
 
    private final QueuedSequenceSynchronizer synchronizer;
+   /**
+    * 保存所有元素
+    */
    private final CopyOnWriteArrayList<T> sharedList;
+   /**
+    * 是否开启ThreadLocal保存元素
+    */
    private final boolean weakThreadLocals;
-
+   /**
+    * 当前线程持有的元素
+    */
    private final ThreadLocal<List<Object>> threadList;
+   /**
+    * 监听器，用于通知外部
+    */
    private final IBagStateListener listener;
+   /**
+    * 等待者数量
+    */
    private final AtomicInteger waiters;
    private volatile boolean closed;
 

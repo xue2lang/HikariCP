@@ -16,6 +16,12 @@
 
 package com.zaxxer.hikari;
 
+import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
+import com.zaxxer.hikari.pool.HikariPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -23,26 +29,27 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.sql.DataSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
-import com.zaxxer.hikari.pool.HikariPool;
-
 /**
  * The HikariCP pooled DataSource.
+ *
+ * 通过操作HikariPool来获取数据库连接
  *
  * @author Brett Wooldridge
  */
 public class HikariDataSource extends HikariConfig implements DataSource, Closeable
 {
    private static final Logger LOGGER = LoggerFactory.getLogger(HikariDataSource.class);
-
+   /**
+    * 连接池是否关闭
+    */
    private final AtomicBoolean isShutdown = new AtomicBoolean();
-
+   /**
+    * final修饰，构造时决定。如果使用无参构造为null，使用有参构造和pool一样
+    */
    private final HikariPool fastPathPool;
+   /**
+    * volatile修饰。无参构造不会设置pool，在getConnection时构造pool;有参构造和fastPathPool一样。
+    */
    private volatile HikariPool pool;
 
    /**

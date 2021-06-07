@@ -16,6 +16,16 @@
 
 package com.zaxxer.hikari;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
+import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
+import com.zaxxer.hikari.util.PropertyElf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,49 +39,79 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.health.HealthCheckRegistry;
-import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
-import com.zaxxer.hikari.util.PropertyElf;
-
+import static com.zaxxer.hikari.util.UtilityElf.getNullIfEmpty;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import static com.zaxxer.hikari.util.UtilityElf.getNullIfEmpty;
-
+/**
+ * 类描述：所有配置信息，实现HikariConfigMXBean接口（某些配置可以利用JMX热刷新）
+ * @author: sunwei
+ * @date: 2021/6/7 09:46
+ */
 public class HikariConfig implements HikariConfigMXBean
 {
    private static final Logger LOGGER = LoggerFactory.getLogger(HikariConfig.class);
-
+   /**
+    * 连接超时时间，默认30s
+    */
    private static final long CONNECTION_TIMEOUT = SECONDS.toMillis(30);
+   /**
+    * 校验连接超时时长，默认5s
+    */
    private static final long VALIDATION_TIMEOUT = SECONDS.toMillis(5);
+   /**
+    * 空闲超时时间，默认10min
+    */
    private static final long IDLE_TIMEOUT = MINUTES.toMillis(10);
+   /**
+    * 连接最大时长，默认30min
+    */
    private static final long MAX_LIFETIME = MINUTES.toMillis(30);
-
+   /**
+    * 连接池大小
+    */
    private static final AtomicInteger POOL_NUMBER;
    private static boolean unitTest;
 
-   // Properties changeable at runtime through the MBean
-   //
+   // Properties changeable at runtime through the MBean 运行时可通过HikariConfigMXBean进行修改的属性
+   /**
+    * 连接超时时间
+    */
    private volatile long connectionTimeout;
+   /**
+    * 校验连接超时时长
+    */
    private volatile long validationTimeout;
+   /**
+    * 空闲超时时间
+    */
    private volatile long idleTimeout;
+   /**
+    * 连接泄露检测时长
+    */
    private volatile long leakDetectionThreshold;
+   /**
+    * 连接最大时长
+    */
    private volatile long maxLifetime;
+   /**
+    * 最大连接数，默认-1，若不满足条件，但在构造函数校验过程中，会改为10
+    */
    private volatile int maxPoolSize;
+   /**
+    * 最小连接数，默认-1，若不满足条件，但在构造函数校验过程中，会改为10
+    */
    private volatile int minIdle;
 
-   // Properties NOT changeable at runtime
+   // Properties NOT changeable at runtime 运行时不可修改的属性
    //
    private String catalog;
+   /**
+    * 创建连接后，在放入连接池前，执行的sql
+    */
    private String connectionInitSql;
+   /**
+    * 校验连接是否可用的sql，如果为空使用ping，否则执行这个sql
+    */
    private String connectionTestQuery;
    private String dataSourceClassName;
    private String dataSourceJndiName;
@@ -81,11 +121,26 @@ public class HikariConfig implements HikariConfigMXBean
    private String poolName;
    private String transactionIsolationName;
    private String username;
+   /**
+    * 是否自动提交，默认true
+    */
    private boolean isAutoCommit;
+   /**
+    * 是否只读，默认false
+    */
    private boolean isReadOnly;
+   /**
+    * 初始化检查与数据库连接是否ok的超时时间，默认1，为0代表不做初始化检查
+    */
    private boolean isInitializationFailFast;
    private boolean isIsolateInternalQueries;
+   /**
+    * 是否注册MBean，默认否，用于运行时修改连接池参数
+    */
    private boolean isRegisterMbeans;
+   /**
+    * 是否允许连接池挂起操作，默认否
+    */
    private boolean isAllowPoolSuspension;
    private DataSource dataSource;
    private Properties dataSourceProperties;

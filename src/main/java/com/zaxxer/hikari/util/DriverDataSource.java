@@ -15,21 +15,20 @@
  */
 package com.zaxxer.hikari.util;
 
-import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.Enumeration;
-import java.util.Map.Entry;
-import java.util.Properties;
-
-import javax.sql.DataSource;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
+import java.io.PrintWriter;
+import java.sql.*;
+import java.util.Enumeration;
+import java.util.Map.Entry;
+import java.util.Properties;
+/**
+ * 类描述：实现了DataSource接口，实际操作java.sql.Driver获取Connection
+ * @author: sunwei
+ * @date: 2021/6/7 09:53
+ */
 public final class DriverDataSource implements DataSource
 {
    private static final Logger LOGGER = LoggerFactory.getLogger(DriverDataSource.class);

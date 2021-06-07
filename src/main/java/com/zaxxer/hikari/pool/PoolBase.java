@@ -1,14 +1,18 @@
 package com.zaxxer.hikari.pool;
 
-import static com.zaxxer.hikari.pool.ProxyConnection.DIRTY_BIT_AUTOCOMMIT;
-import static com.zaxxer.hikari.pool.ProxyConnection.DIRTY_BIT_CATALOG;
-import static com.zaxxer.hikari.pool.ProxyConnection.DIRTY_BIT_ISOLATION;
-import static com.zaxxer.hikari.pool.ProxyConnection.DIRTY_BIT_NETTIMEOUT;
-import static com.zaxxer.hikari.pool.ProxyConnection.DIRTY_BIT_READONLY;
-import static com.zaxxer.hikari.util.UtilityElf.createInstance;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.metrics.MetricsTracker;
+import com.zaxxer.hikari.util.ClockSource;
+import com.zaxxer.hikari.util.DriverDataSource;
+import com.zaxxer.hikari.util.PropertyElf;
+import com.zaxxer.hikari.util.UtilityElf;
+import com.zaxxer.hikari.util.UtilityElf.DefaultThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.sql.DataSource;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -20,21 +24,15 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.sql.DataSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.metrics.MetricsTracker;
-import com.zaxxer.hikari.util.ClockSource;
-import com.zaxxer.hikari.util.DriverDataSource;
-import com.zaxxer.hikari.util.PropertyElf;
-import com.zaxxer.hikari.util.UtilityElf;
-import com.zaxxer.hikari.util.UtilityElf.DefaultThreadFactory;
-
+import static com.zaxxer.hikari.pool.ProxyConnection.*;
+import static com.zaxxer.hikari.util.UtilityElf.createInstance;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+/**
+ * 类描述：PoolBase是HikariPool的父类，主要负责操作实际的DataSource获取Connection，并设置Connection的一些属性
+ * @author: sunwei
+ * @date: 2021/6/7 09:52
+ */
 abstract class PoolBase
 {
    private final Logger LOGGER = LoggerFactory.getLogger(PoolBase.class);

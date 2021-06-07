@@ -16,23 +16,6 @@
 
 package com.zaxxer.hikari.pool;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLTransientConnectionException;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.zaxxer.hikari.HikariConfig;
@@ -44,22 +27,31 @@ import com.zaxxer.hikari.metrics.dropwizard.CodahaleMetricsTrackerFactory;
 import com.zaxxer.hikari.util.ClockSource;
 import com.zaxxer.hikari.util.ConcurrentBag;
 import com.zaxxer.hikari.util.ConcurrentBag.IBagStateListener;
-import com.zaxxer.hikari.util.UtilityElf.DefaultThreadFactory;
 import com.zaxxer.hikari.util.SuspendResumeLock;
+import com.zaxxer.hikari.util.UtilityElf.DefaultThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.zaxxer.hikari.pool.PoolEntry.LAST_ACCESS_COMPARABLE;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_IN_USE;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_NOT_IN_USE;
-import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.STATE_REMOVED;
+import static com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry.*;
 import static com.zaxxer.hikari.util.UtilityElf.createThreadPoolExecutor;
 import static com.zaxxer.hikari.util.UtilityElf.quietlySleep;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * This is the primary connection pool class that provides the basic
  * pooling behavior for HikariCP.
+ *
+ * 主要的连接池类，为HikariCP提供基本的池化行为
  *
  * @author Brett Wooldridge
  */
@@ -72,21 +64,42 @@ public class HikariPool extends PoolBase implements HikariPoolMXBean, IBagStateL
    private static final int POOL_NORMAL = 0;
    private static final int POOL_SUSPENDED = 1;
    private static final int POOL_SHUTDOWN = 2;
-
+   /**
+    * 连接池状态
+    */
    private volatile int poolState;
 
    private final long ALIVE_BYPASS_WINDOW_MS = Long.getLong("com.zaxxer.hikari.aliveBypassWindowMs", MILLISECONDS.toMillis(500));
    private final long HOUSEKEEPING_PERIOD_MS = Long.getLong("com.zaxxer.hikari.housekeeping.periodMs", SECONDS.toMillis(30));
-
+   /**
+    * 实现Callable，负责创建连接
+    */
    private final PoolEntryCreator POOL_ENTRY_CREATOR = new PoolEntryCreator();
+   /**
+    * 当前总的连接数
+    */
    private final AtomicInteger totalConnections;
+   /**
+    * 创建连接的线程池
+    */
    private final ThreadPoolExecutor addConnectionExecutor;
+   /**
+    * 关闭连接的线程池
+    */
    private final ThreadPoolExecutor closeConnectionExecutor;
+   /**
+    * 行HouseKeeper任务的线程池，HouseKeeper用于维持最小连接数
+    */
    private final ScheduledThreadPoolExecutor houseKeepingExecutorService;
-
+   /**
+    * Hikari为连接池设计的一个并发类，类比LinkedBlockingQueue
+    */
    private final ConcurrentBag<PoolEntry> connectionBag;
 
    private final ProxyLeakTask leakTask;
+   /**
+    * 将连接池挂起和恢复封装的信号量
+    */
    private final SuspendResumeLock suspendResumeLock;
 
    private MetricsTrackerDelegate metricsTracker;

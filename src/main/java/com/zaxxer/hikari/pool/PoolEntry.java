@@ -15,6 +15,12 @@
  */
 package com.zaxxer.hikari.pool;
 
+import com.zaxxer.hikari.util.ClockSource;
+import com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry;
+import com.zaxxer.hikari.util.FastList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -22,17 +28,12 @@ import java.util.Comparator;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.zaxxer.hikari.util.ClockSource;
-import com.zaxxer.hikari.util.ConcurrentBag.IConcurrentBagEntry;
-import com.zaxxer.hikari.util.FastList;
-
 /**
  * Entry used in the ConcurrentBag to track Connection instances.
  *
  * @author Brett Wooldridge
+ *
+ * PoolEntry实际拥有Connection的实例，并且实现IConcurrentBagEntry接口，可以放入ConcurrentBag容器。
  */
 final class PoolEntry implements IConcurrentBagEntry
 {
