@@ -182,7 +182,7 @@ public class HikariConfig implements HikariConfigMXBean
 
       isAutoCommit = true;
       isInitializationFailFast = true;
-
+      //通过外部配置文件来进行配置加载
       String systemProp = System.getProperty("hikaricp.configurationFile");
       if (systemProp != null) {
          loadProperties(systemProp);
@@ -855,12 +855,15 @@ public class HikariConfig implements HikariConfigMXBean
       }
 
       validateNumerics();
-
+      //日志输出配置信息
       if (LOGGER.isDebugEnabled() || unitTest) {
          logConfiguration();
       }
    }
 
+   /**
+    * 校验各种配置是否合理，若不合理，设置默认值
+    */
    private void validateNumerics()
    {
       if (maxLifetime != 0 && maxLifetime < SECONDS.toMillis(30)) {

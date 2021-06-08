@@ -16,39 +16,23 @@
 
 package com.zaxxer.hikari.util;
 
-import java.lang.reflect.Array;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.zaxxer.hikari.pool.ProxyCallableStatement;
-import com.zaxxer.hikari.pool.ProxyConnection;
-import com.zaxxer.hikari.pool.ProxyFactory;
-import com.zaxxer.hikari.pool.ProxyPreparedStatement;
-import com.zaxxer.hikari.pool.ProxyResultSet;
-import com.zaxxer.hikari.pool.ProxyStatement;
-
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import javassist.CtNewMethod;
-import javassist.LoaderClassPath;
-import javassist.Modifier;
-import javassist.NotFoundException;
+import com.zaxxer.hikari.pool.*;
+import javassist.*;
 import javassist.bytecode.ClassFile;
+
+import java.lang.reflect.Array;
+import java.sql.*;
+import java.util.*;
 
 /**
  * This class generates the proxy objects for {@link Connection}, {@link Statement},
  * {@link PreparedStatement}, and {@link CallableStatement}.  Additionally it injects
  * method bodies into the {@link ProxyFactory} class methods that can instantiate
  * instances of the generated proxies.
+ *
+ *
+ * Hikari返回给用户Connection、ResultSet等java.sql对象实例，都是由ProxyFactory创建的代理对象。<br/>
+ * 如Connection的代理对象是HikariProxyConnection。而这些代理的class文件都是由Javassist通过字节码生成的，详见当前类：JavassistProxyFactory
  *
  * @author Brett Wooldridge
  */
@@ -63,17 +47,18 @@ public final class JavassistProxyFactory
       classPool.appendClassPath(new LoaderClassPath(JavassistProxyFactory.class.getClassLoader()));
 
       try {
-         // Cast is not needed for these
+         // Cast is not needed for these 生成Connection、Statement、ResultSet 代理类
          String methodBody = "{ try { return delegate.method($$); } catch (SQLException e) { throw checkException(e); } }";
          generateProxyClass(Connection.class, ProxyConnection.class.getName(), methodBody);
          generateProxyClass(Statement.class, ProxyStatement.class.getName(), methodBody);
          generateProxyClass(ResultSet.class, ProxyResultSet.class.getName(), methodBody);
 
-         // For these we have to cast the delegate
+         // For these we have to cast the delegate 生成PreparedStatement、CallableStatement代理类
          methodBody = "{ try { return ((cast) delegate).method($$); } catch (SQLException e) { throw checkException(e); } }";
          generateProxyClass(PreparedStatement.class, ProxyPreparedStatement.class.getName(), methodBody);
          generateProxyClass(CallableStatement.class, ProxyCallableStatement.class.getName(), methodBody);
 
+         //通过Javassist修改ProxyFactory的实现
          modifyProxyFactory();
       }
       catch (Exception e) {
@@ -90,6 +75,7 @@ public final class JavassistProxyFactory
       for (CtMethod method : proxyCt.getMethods()) {
          switch (method.getName()) {
          case "getProxyConnection":
+            // 调用HikariProxyConnection的构造方法
             method.setBody("{return new " + packageName + ".HikariProxyConnection($$);}");
             break;
          case "getProxyStatement":

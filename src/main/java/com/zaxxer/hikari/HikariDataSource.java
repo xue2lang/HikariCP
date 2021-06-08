@@ -71,10 +71,13 @@ public class HikariDataSource extends HikariConfig implements DataSource, Closea
     */
    public HikariDataSource(HikariConfig configuration)
    {
+      //配置校验
       configuration.validate();
+      //配置拷贝
       configuration.copyState(this);
 
       LOGGER.info("{} - Started.", configuration.getPoolName());
+      //创建连接池
       pool = fastPathPool = new HikariPool(this);
    }
 

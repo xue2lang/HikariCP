@@ -77,6 +77,7 @@ abstract class PoolBase
 
       this.isQueryTimeoutSupported = UNINITIALIZED;
       this.isNetworkTimeoutSupported = UNINITIALIZED;
+      //若connectionTestQuery 为null，则使用ping来检测与数据库的连通性
       this.isUseJdbc4Validation = config.getConnectionTestQuery() == null;
       this.isIsolateInternalQueries = config.isIsolateInternalQueries();
 
@@ -287,6 +288,7 @@ abstract class PoolBase
       final Properties dataSourceProperties = config.getDataSourceProperties();
 
       DataSource dataSource = config.getDataSource();
+      //创建DataSource对象，并进行属性赋值
       if (dsClassName != null && dataSource == null) {
          dataSource = createInstance(dsClassName, DataSource.class);
          PropertyElf.setTargetFromProperties(dataSource, dataSourceProperties);
@@ -294,7 +296,7 @@ abstract class PoolBase
       else if (jdbcUrl != null && dataSource == null) {
          dataSource = new DriverDataSource(jdbcUrl, driverClassName, dataSourceProperties, username, password);
       }
-
+      //为dataSource设置登录超时时间、为当前对象创建线程池
       if (dataSource != null) {
          setLoginTimeout(dataSource, connectionTimeout);
          createNetworkTimeoutExecutor(dataSource, dsClassName, jdbcUrl);

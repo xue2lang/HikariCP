@@ -23,25 +23,37 @@ import java.util.concurrent.Semaphore;
  * also provides a faux implementation that is used when the feature is disabled that
  * hopefully gets fully "optimized away" by the JIT.
  *
+ *
+ * 专门用于连接池挂起和恢复，利用的是JUC的Semaphore。<br/>
+ *
+ * acquire：每次getConnection都会调用这个方法，如果当前连接池处于挂起状态，获取不到信号量将阻塞等待。<br/>
+ * release：释放信号量。<br/>
+ * suspend：阻塞等待获取所有信号量。<br/>
+ * resume：释放所有信号量。<br/>
+ *
  * @author Brett Wooldridge
  */
 public class SuspendResumeLock
 {
+   /**
+    * 重新定义对象，不使用信号量，空实现
+    */
    public static final SuspendResumeLock FAUX_LOCK = new SuspendResumeLock(false) {
       @Override
       public void acquire() {}
 
       @Override
       public void release() {}
-      
+
       @Override
       public void suspend() {}
 
       @Override
       public void resume() {}
    };
-
+   //信号量最大值
    private static final int MAX_PERMITS = 10000;
+   //信号量对象
    private final Semaphore acquisitionSemaphore;
 
    /**
