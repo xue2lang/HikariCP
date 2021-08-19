@@ -88,7 +88,7 @@ public class HikariPool extends PoolBase implements HikariPoolMXBean, IBagStateL
     */
    private final ThreadPoolExecutor closeConnectionExecutor;
    /**
-    * 行HouseKeeper任务的线程池，HouseKeeper用于维持最小连接数
+    * 行HouseKeeper任务的线程池，HouseKeeper用于维持最小连接数(用于执行检测连接泄露、关闭生存时间到期的连接、回收空闲连接、检测时间回拨???)
     */
    private final ScheduledThreadPoolExecutor houseKeepingExecutorService;
    /**
@@ -132,7 +132,7 @@ public class HikariPool extends PoolBase implements HikariPoolMXBean, IBagStateL
       registerMBeans(this);
       //初始化校验（获取数据库连接，执行sql，校验连接可用性）
       checkFailFast();
-      //线程池
+      //线程池工厂
       ThreadFactory threadFactory = config.getThreadFactory();
       //创建连接线程池（拒接策略丢弃）：创建连接（PoolEntry）放入ConcurrentBag
       this.addConnectionExecutor = createThreadPoolExecutor(config.getMaximumPoolSize(), poolName + " connection adder", threadFactory, new ThreadPoolExecutor.DiscardPolicy());
@@ -156,7 +156,7 @@ public class HikariPool extends PoolBase implements HikariPoolMXBean, IBagStateL
       }
       //启动定时任务HouseKeeper，每隔30秒执行一次
       this.houseKeepingExecutorService.scheduleWithFixedDelay(new HouseKeeper(), 0L, HOUSEKEEPING_PERIOD_MS, MILLISECONDS);
-
+      //检测连接泄露任务：连接泄露的最大时长、执行任务的线程池
       this.leakTask = new ProxyLeakTask(config.getLeakDetectionThreshold(), houseKeepingExecutorService);
    }
 
